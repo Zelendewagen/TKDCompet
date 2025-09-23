@@ -1,12 +1,13 @@
+import sqlite3
 from tkinter import ttk
 import tkinter as tk
+
+from config import DB_FILE
 
 
 class AthletesFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-
-        back_button = tk.Button(self, text="Назад", command=self.show_competitions_table)
 
         heads = ['№', 'ФИО', 'Пол', 'Дата рождения', 'Полных лет', 'Вес', 'Категория', 'Регион', 'Тренер', 'Массоги',
                  'Тыли']
@@ -29,9 +30,21 @@ class AthletesFrame(tk.Frame):
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.table.yview)
         self.table.configure(yscroll=self.scrollbar.set)
 
-        back_button.pack()
+        buttons_frame = ttk.Frame(self)
+
+
+        back_button = tk.Button(buttons_frame, text="\u2190", font=("Arial", 16), command=self.show_competitions_table)
+        add_button = tk.Button(buttons_frame, text="Добавить одного")
+        add_list_button = tk.Button(buttons_frame, text="Добавить список")
+
+        back_button.pack(side="left", padx=5, pady=5)
+        add_button.pack(side="left", padx=5, pady=5)
+        add_list_button.pack(side="left", padx=5, pady=5)
+
+
+        buttons_frame.pack(fill="both", padx=10, pady=5)
         self.table.pack(side="left", fill="both", padx=10, pady=10, expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+        self.scrollbar.pack(side="right", fill="y",pady=10)
 
     def right_button_menu(self, event):
         item = self.table.identify_row(event.y)
@@ -52,6 +65,17 @@ class AthletesFrame(tk.Frame):
         if item:
             values = self.table.item(item, "values")
             print(values)
+
+    def load_table(self, id):
+        for row in self.table.get_children():
+            self.table.delete(row)
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM athletes WHERE competition_id = ?", (id,))
+        athletes = cursor.fetchall()
+        conn.close()
+        for row in athletes:
+            self.table.insert("", tk.END, values=(row[0], row[2], row[3], row[1], row[4]))
 
     def show_competitions_table(self):
         for widget in self.master.winfo_children():

@@ -3,23 +3,23 @@ from tkinter import messagebox, ttk
 import os
 import sqlite3
 
+from config import DB_FOLDER, DB_FILE
 from tables.athletes import AthletesFrame
 from tables.competitions import CompetitionsFrame
 
-DB_FILE = "data.db"
-DB_FOLDER = "."
+
 
 
 def check_database():
     db_path = os.path.join(DB_FOLDER, DB_FILE)
     if os.path.exists(db_path):
-        load_competitions()
+        load_competitions_table()
     else:
         messagebox.showwarning("TKD", f"Новая база данных: {db_path}")
-        create_tables()
+        create_db()
 
 
-def load_competitions():
+def load_competitions_table():
     for row in competitions_frame.table.get_children():
         competitions_frame.table.delete(row)
     conn = sqlite3.connect(DB_FILE)
@@ -31,7 +31,7 @@ def load_competitions():
         competitions_frame.table.insert("", tk.END, values=(row[0], row[2], row[3], row[1], row[4]))
 
 
-def create_tables():
+def create_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 

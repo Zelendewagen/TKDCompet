@@ -42,12 +42,11 @@ class CompetitionsFrame(tk.Frame):
         item = self.table.identify_row(event.y)
         if item:
             values = self.table.item(item, "values")
-            print(values)
         self.show_athletes_table(values[0])
 
     def show_athletes_table(self, name):
-        print(name)
         for widget in self.master.winfo_children():
             if not widget.winfo_ismapped():
                 widget.pack(fill="both", expand=True)
+                widget.load_table(name)
         self.pack_forget()
