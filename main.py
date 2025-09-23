@@ -17,37 +17,13 @@ def check_database():
             competitions_frame.table.delete(row)
     else:
         messagebox.showwarning("TKD", f"Нету базы: {db_path}")
-
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-
-    # cursor.execute("""
-    #         CREATE TABLE IF NOT EXISTS competitions (
-    #             id INTEGER PRIMARY KEY AUTOINCREMENT,
-    #             name TEXT NOT NULL,
-    #             date TEXT,
-    #             location TEXT,
-    #             club TEXT,
-    #             main_judge TEXT,
-    #             judge TEXT,
-    #             secretary TEXT
-    #         )
-    #         """)
-    #
-    # cursor.execute(
-    #     "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    #     ("Первенство и фестиваль", "22-23 ноября", "г. Находка", "клуб1", "Ким А Т", "Ким А Т", "Ким К А"))
-    # cursor.execute(
-    #     "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    #     ("Соревнование во владивостоке", "24-25 ноября", "г. Владивосток", "клуб2", "Ким А Т", "Ким А Т", "Ким К А"))
-    # conn.commit()
-
     cursor.execute("SELECT * FROM competitions")
     competitions = cursor.fetchall()
     conn.close()
-
     for row in competitions:
-        compet_frame.table.insert("", tk.END, values=(row[0], row[2], row[3], row[1], row[4]))
+        competitions_frame.table.insert("", tk.END, values=(row[0], row[2], row[3], row[1], row[4]))
 
 
 #######################################################################################################################
