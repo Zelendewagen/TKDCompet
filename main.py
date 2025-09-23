@@ -13,10 +13,15 @@ DB_FOLDER = "."
 def check_database():
     db_path = os.path.join(DB_FOLDER, DB_FILE)
     if os.path.exists(db_path):
-        for row in competitions_frame.table.get_children():
-            competitions_frame.table.delete(row)
+        load_competitions()
     else:
-        messagebox.showwarning("TKD", f"Нету базы: {db_path}")
+        messagebox.showwarning("TKD", f"Новая база данных: {db_path}")
+        create_tables()
+
+
+def load_competitions():
+    for row in competitions_frame.table.get_children():
+        competitions_frame.table.delete(row)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM competitions")
@@ -24,6 +29,44 @@ def check_database():
     conn.close()
     for row in competitions:
         competitions_frame.table.insert("", tk.END, values=(row[0], row[2], row[3], row[1], row[4]))
+
+
+def create_tables():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS competitions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        date TEXT,
+                        location TEXT,
+                        club TEXT,
+                        main_judge TEXT,
+                        judge TEXT,
+                        secretary TEXT
+                    )
+                    """)
+
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS athletes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                competition_id INTEGER,
+                name TEXT NOT NULL,
+                gender TEXT,
+                date TEXT,
+                age TEXT,
+                weight TEXT,
+                category TEXT,
+                region TEXT,
+                trainer TEXT,
+                massogi TEXT,
+                tyli TEXT,
+                FOREIGN KEY (competition_id) REFERENCES competitions (id))
+            """)
+
+    conn.commit()
+    conn.close()
 
 
 #######################################################################################################################
@@ -48,11 +91,9 @@ style.configure("Treeview",
 main = tk.Frame(root)
 main.pack(fill="both", expand=True)
 
-check_button = tk.Button(main, text="Загрузить", command=check_database, font=("Arial", 16))
-check_button.pack(pady=10)
-
 competitions_frame = CompetitionsFrame(main)
 competitions_frame.pack(fill="both", expand=True)
 athletes_frame = AthletesFrame(main)
+check_database()
 #######################################################################################################################
 root.mainloop()
