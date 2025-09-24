@@ -25,9 +25,8 @@ class CompetitionsFrame(tk.Frame):
         self.table.configure(yscroll=self.scrollbar.set)
 
         buttons_frame = tk.Frame(self)
-        back_button = tk.Button(buttons_frame, text="Создать новое соревнование",
+        back_button = ttk.Button(buttons_frame, text="Создать новое соревнование",
                                 command=self.open_add_change_window)
-
         back_button.pack(side="left", padx=5, pady=5)
 
         buttons_frame.pack(fill="both", padx=5)
@@ -41,11 +40,9 @@ class CompetitionsFrame(tk.Frame):
             self.table.focus(item)
             values = self.table.item(item, "values")
 
-        popup_menu = tk.Menu(self)
         event.widget.focus()
-        file_menu = tk.Menu(popup_menu)
+        file_menu = tk.Menu(self)
         file_menu.add_command(label='Изменить', command=lambda: self.open_add_change_window(change=True, num=values[0]))
-        file_menu.add_separator()
         file_menu.add_command(label='Удалить', command=lambda: self.delete_competition(values[0]))
         file_menu.post(event.x_root, event.y_root)
 
@@ -101,12 +98,15 @@ class CompetitionsFrame(tk.Frame):
         judge.grid(column=0, row=5, sticky='w', pady=(0, 10))
         secretary.grid(column=0, row=6, sticky='w')
 
-        entries = [ttk.Entry(frame, width=30) for _ in range(7)]
+        entries = [tk.Entry(frame, width=30) for _ in range(7)]
         for i, entry in enumerate(entries):
             if i + 1 == len(entries):
                 entries[i].grid(column=1, row=i, sticky='ew')
             else:
                 entries[i].grid(column=1, row=i, sticky='ew', pady=(0, 10))
+
+        buttons_frame = tk.Frame(frame)
+        buttons_frame.grid(columnspan=2, row=7, pady=20, padx=100, sticky="ew")
 
         if change:
             conn = sqlite3.connect(config.DB_FILE)
@@ -117,14 +117,17 @@ class CompetitionsFrame(tk.Frame):
             for i, entry in enumerate(entries):
                 entries[i].insert(0, values[i + 1])
 
-            change_button = tk.Button(frame, text='Изменить',
+            change_button = ttk.Button(buttons_frame, text='Изменить', width=15,
                                       command=lambda: (
                                           self.change_competition(entries, num=values[0]), window.destroy()))
-            change_button.grid(columnspan=2, pady=20, row=7)
+            change_button.pack(fill="both", expand=True, side="left", padx=5)
         else:
-            tk.Button(
-                frame, text='Добавить',
-                command=lambda: (self.create_competition(entries), window.destroy())).grid(columnspan=2, pady=20, row=7)
+            add_button = ttk.Button(buttons_frame, text='Добавить', width=15,
+                                   command=lambda: (self.create_competition(entries), window.destroy()))
+            add_button.pack(fill="both", expand=True, side="left", padx=5)
+
+        cancel_button2 = ttk.Button(buttons_frame, text="Отмена", command=window.destroy, width=15)
+        cancel_button2.pack(fill="both", expand=True, side="left", padx=5)
 
     def create_competition(self, entries):
         parameters = ()

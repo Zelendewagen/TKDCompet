@@ -50,9 +50,8 @@ class AthletesFrame(tk.Frame):
             self.table.selection_set(item)
             self.table.focus(item)
 
-        popup_menu = tk.Menu(self)
         event.widget.focus()
-        file_menu = tk.Menu(popup_menu)
+        file_menu = tk.Menu(self)
         file_menu.add_command(label='Изменить', command=lambda: print(self.table.item(item).get('values')))
         file_menu.add_separator()
         file_menu.add_command(label='Удалить')

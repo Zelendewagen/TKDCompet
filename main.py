@@ -63,11 +63,11 @@ root.geometry(config.geometry(root, config.main_width, config.main_height))
 root.option_add("*tearOff", tk.FALSE)
 #######################################################################################################################
 style = ttk.Style()
-style.theme_use("clam")
+style.theme_use("vista")
 style.configure("Treeview",
                 borderwidth=1,
                 relief="solid")
-# print(style.theme_names())
+print(style.theme_names())
 #######################################################################################################################
 main = tk.Frame(root)
 main.pack(fill="both", expand=True)
