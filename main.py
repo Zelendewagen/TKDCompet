@@ -3,32 +3,19 @@ from tkinter import messagebox, ttk
 import os
 import sqlite3
 
+import config
 from config import DB_FOLDER, DB_FILE
 from tables.athletes import AthletesFrame
 from tables.competitions import CompetitionsFrame
 
 
-
-
 def check_database():
     db_path = os.path.join(DB_FOLDER, DB_FILE)
     if os.path.exists(db_path):
-        load_competitions_table()
+        competitions_frame.update_table()
     else:
         messagebox.showwarning("TKD", f"Новая база данных: {db_path}")
         create_db()
-
-
-def load_competitions_table():
-    for row in competitions_frame.table.get_children():
-        competitions_frame.table.delete(row)
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM competitions")
-    competitions = cursor.fetchall()
-    conn.close()
-    for row in competitions:
-        competitions_frame.table.insert("", tk.END, values=(row[0], row[2], row[3], row[1], row[4]))
 
 
 def create_db():
@@ -71,14 +58,8 @@ def create_db():
 
 #######################################################################################################################
 root = tk.Tk()
-root.title("TKD")
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-window_width = int(screen_width * 0.55)
-window_height = int(screen_height * 0.45)
-x_position = (screen_width - window_width) // 2
-y_position = (screen_height - window_height) // 2
-root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+root.title("TKD competitions manager")
+root.geometry(config.geometry(root, config.main_width, config.main_height))
 root.option_add("*tearOff", tk.FALSE)
 #######################################################################################################################
 style = ttk.Style()
@@ -93,6 +74,7 @@ main.pack(fill="both", expand=True)
 
 competitions_frame = CompetitionsFrame(main)
 competitions_frame.pack(fill="both", expand=True)
+
 athletes_frame = AthletesFrame(main)
 check_database()
 #######################################################################################################################
