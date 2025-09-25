@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 from tkinter import ttk, messagebox
 import tkinter as tk
 
@@ -67,37 +68,31 @@ class CompetitionsFrame(tk.Frame):
         competitions = cursor.fetchall()
         conn.close()
         for row in competitions:
-            self.table.insert("", tk.END, values=(row[0], row[1], row[2], row[3], row[4]))
+            self.table.insert("", tk.END, values=row[:-3])
 
     def open_add_change_window(self, change=False, num=None):
-        window = tk.Toplevel()
-        window.grab_set()
-        window.title('Создать соревнование')
-        window.geometry(config.geometry(self.master, config.top_width, config.top_height))
-        window.resizable(False, False)
-        window.attributes("-topmost", True)
+        self.top_window = tk.Toplevel()
+        self.top_window.grab_set()
+        title = 'Изменить соревнование' if change else 'Создать соревнование'
+        self.top_window.title(title)
+        self.top_window.geometry(config.geometry(self.master, config.cmp_window_width, config.cmp_window_height))
+        self.top_window.resizable(False, False)
+        self.top_window.attributes("-topmost", True)
 
-        frame = tk.Frame(window)
+        frame = tk.Frame(self.top_window)
         frame.pack(fill="both", padx=(10, 50), pady=10, expand=True)
-        frame.columnconfigure(index=0)
         frame.columnconfigure(index=1, weight=250)
 
-        name = tk.Label(frame, text='Название')
-        date = tk.Label(frame, text='Дата')
-        location = tk.Label(frame, text='Город')
-        club = tk.Label(frame, text='Клуб')
-        main_judge = tk.Label(frame, text='Гл. судья')
-        judge = tk.Label(frame, text='Судья')
-        secretary = tk.Label(frame, text='Секретарь')
-        name.grid(column=0, row=0, sticky='w', pady=(0, 10))
-        date.grid(column=0, row=1, sticky='w', pady=(0, 10))
-        location.grid(column=0, row=2, sticky='w', pady=(0, 10))
-        club.grid(column=0, row=3, sticky='w', pady=(0, 10))
-        main_judge.grid(column=0, row=4, sticky='w', pady=(0, 10))
-        judge.grid(column=0, row=5, sticky='w', pady=(0, 10))
-        secretary.grid(column=0, row=6, sticky='w')
+        labels = ['Название', 'Дата', 'Город', 'Клуб', 'Гл. судья', 'Судья', 'Секретарь']
 
-        entries = [tk.Entry(frame, width=30) for _ in range(7)]
+        for i, text in enumerate(labels):
+            label = tk.Label(frame, text=text)
+            if i == len(labels) - 1:
+                label.grid(column=0, row=i, sticky='w')
+            else:
+                label.grid(column=0, row=i, sticky='w', pady=(0, 10))
+
+        entries = [tk.Entry(frame, width=30) for _ in range(len(labels))]
         for i, entry in enumerate(entries):
             if i + 1 == len(entries):
                 entries[i].grid(column=1, row=i, sticky='ew')
@@ -105,7 +100,7 @@ class CompetitionsFrame(tk.Frame):
                 entries[i].grid(column=1, row=i, sticky='ew', pady=(0, 10))
 
         buttons_frame = tk.Frame(frame)
-        buttons_frame.grid(columnspan=2, row=7, pady=20, padx=100, sticky="ew")
+        buttons_frame.grid(columnspan=2, row=len(labels), pady=20, padx=100, sticky="ew")
 
         if change:
             conn = sqlite3.connect(config.DB_FILE)
@@ -117,44 +112,53 @@ class CompetitionsFrame(tk.Frame):
                 entries[i].insert(0, values[i + 1])
 
             change_button = ttk.Button(buttons_frame, text='Изменить', width=15,
-                                       command=lambda: (
-                                           self.change_competition(entries, num=values[0]), window.destroy()))
+                                       command=lambda: self.change_competition(entries, num=values[0]))
             change_button.pack(fill="both", expand=True, side="left", padx=5)
         else:
             add_button = ttk.Button(buttons_frame, text='Добавить', width=15,
-                                    command=lambda: (self.create_competition(entries), window.destroy()))
+                                    command=lambda: self.create_competition(entries))
             add_button.pack(fill="both", expand=True, side="left", padx=5)
 
-        cancel_button2 = ttk.Button(buttons_frame, text="Отмена", command=window.destroy, width=15)
+        cancel_button2 = ttk.Button(buttons_frame, text="Отмена", command=self.top_window.destroy, width=15)
         cancel_button2.pack(fill="both", expand=True, side="left", padx=5)
 
     def create_competition(self, entries):
         parameters = ()
         for i in entries:
             parameters += (i.get(),)
-        conn = sqlite3.connect(config.DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            parameters)
-        conn.commit()
-        cursor.close()
-        self.update_table()
+        try:
+            datetime.strptime(parameters[1], "%d.%m.%Y")
+            conn = sqlite3.connect(config.DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                parameters)
+            conn.commit()
+            cursor.close()
+            self.update_table()
+            self.top_window.destroy()
+        except ValueError:
+            self.top_window.destroy()
+            messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
 
     def change_competition(self, entries, num):
         parameters = ()
         for i in entries:
             parameters += (i.get(),)
         parameters += (num,)
-
-        conn = sqlite3.connect(config.DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE competitions"
-                       " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
-                       parameters)
-        conn.commit()
-        cursor.close()
-        self.update_table()
+        try:
+            datetime.strptime(parameters[1], "%d.%m.%Y")
+            conn = sqlite3.connect(config.DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE competitions"
+                           " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
+                           parameters)
+            conn.commit()
+            cursor.close()
+            self.update_table()
+        except ValueError:
+            self.top_window.destroy()
+            messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
 
     def delete_competition(self, num):
         answer = messagebox.askyesno("Удалить соревнование", "УДАЛИТЬ?")
@@ -162,6 +166,7 @@ class CompetitionsFrame(tk.Frame):
             conn = sqlite3.connect(config.DB_FILE)
             cursor = conn.cursor()
             cursor.execute("DELETE FROM competitions WHERE id = ?", (num,))
+            cursor.execute("DELETE FROM athletes WHERE competition_id = ?", (num,))
             conn.commit()
             cursor.close()
             self.update_table()

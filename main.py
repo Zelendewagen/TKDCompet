@@ -48,8 +48,8 @@ def create_db():
                 region TEXT,
                 club TEXT,
                 trainer TEXT,
-                massogi TEXT,
                 tyli TEXT,
+                massogi TEXT,
                 FOREIGN KEY (competition_id) REFERENCES competitions (id))
             """)
 
