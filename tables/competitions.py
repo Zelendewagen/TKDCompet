@@ -52,11 +52,11 @@ class CompetitionsFrame(tk.Frame):
             values = self.table.item(item, "values")
         self.show_athletes_table(values[0])
 
-    def show_athletes_table(self, name):
+    def show_athletes_table(self, comp_id):
         for child in self.master.winfo_children():
             if not child.winfo_ismapped():
                 child.pack(fill="both", expand=True)
-                child.load_table(name)
+                child.load_table(comp_id)
         self.pack_forget()
 
     def update_table(self):
@@ -112,17 +112,17 @@ class CompetitionsFrame(tk.Frame):
                 entries[i].insert(0, values[i + 1])
 
             change_button = ttk.Button(buttons_frame, text='Изменить', width=15,
-                                       command=lambda: self.change_competition(entries, num=values[0]))
+                                       command=lambda: self.add_change_comp(entries, comp_id=values[0], change=True))
             change_button.pack(fill="both", expand=True, side="left", padx=5)
         else:
             add_button = ttk.Button(buttons_frame, text='Добавить', width=15,
-                                    command=lambda: self.create_competition(entries))
+                                    command=lambda: self.add_change_comp(entries))
             add_button.pack(fill="both", expand=True, side="left", padx=5)
 
         cancel_button2 = ttk.Button(buttons_frame, text="Отмена", command=self.top_window.destroy, width=15)
         cancel_button2.pack(fill="both", expand=True, side="left", padx=5)
 
-    def create_competition(self, entries):
+    def add_change_comp(self, entries, comp_id=None, change=False):
         parameters = ()
         for i in entries:
             parameters += (i.get(),)
@@ -130,32 +130,22 @@ class CompetitionsFrame(tk.Frame):
             datetime.strptime(parameters[1], "%d.%m.%Y")
             conn = sqlite3.connect(config.DB_FILE)
             cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                parameters)
+            if change:
+                parameters += (comp_id,)
+                cursor.execute("UPDATE competitions"
+                               " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
+                               parameters)
+                for child in self.master.winfo_children():
+                    if not child.winfo_ismapped():
+                        child.update_ages(comp_id)
+            else:
+                cursor.execute(
+                    "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    parameters)
             conn.commit()
             cursor.close()
             self.update_table()
             self.top_window.destroy()
-        except ValueError:
-            self.top_window.destroy()
-            messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
-
-    def change_competition(self, entries, num):
-        parameters = ()
-        for i in entries:
-            parameters += (i.get(),)
-        parameters += (num,)
-        try:
-            datetime.strptime(parameters[1], "%d.%m.%Y")
-            conn = sqlite3.connect(config.DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute("UPDATE competitions"
-                           " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
-                           parameters)
-            conn.commit()
-            cursor.close()
-            self.update_table()
         except ValueError:
             self.top_window.destroy()
             messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)

@@ -42,7 +42,8 @@ class AthletesFrame(tk.Frame):
 
         buttons_frame = tk.Frame(self)
         back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_competitions_table, width=10)
-        add_button = ttk.Button(buttons_frame, text="Добавить участника",command=self.open_add_change_athlete_window, width=20)
+        add_button = ttk.Button(buttons_frame, text="Добавить участника", command=self.open_add_change_athlete_window,
+                                width=20)
         add_list_button = ttk.Button(buttons_frame, text="Добавить список", command=self.add_list_athletes, width=20)
         clear_list_button = ttk.Button(buttons_frame, text="Удалить всех", command=self.clear_list_athletes, width=20)
 
@@ -76,17 +77,17 @@ class AthletesFrame(tk.Frame):
             values = self.table.item(item, "values")
             self.open_add_change_athlete_window(change=True, athlete_id=values[-1])
 
-    def load_table(self, num):
-        self.current_id = num
+    def load_table(self, comp_id):
+        self.current_id = comp_id
         for row in self.table.get_children():
             self.table.delete(row)
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM athletes WHERE competition_id = ?", (num,))
+        cursor.execute("SELECT * FROM athletes WHERE competition_id = ?", (self.current_id,))
         athletes = cursor.fetchall()
         conn.close()
         for num, row in enumerate(athletes):
-            values = [num + 1] + [i for i in row if i != 1][2:] + [row[0]]
+            values = [num + 1] + [i for i in row[2:]] + [row[0]]
             self.table.insert("", tk.END, values=values)
 
     def show_competitions_table(self):
@@ -239,5 +240,19 @@ class AthletesFrame(tk.Frame):
         except ValueError:
             self.top_window.destroy()
             messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
+
+    def update_ages(self, comp_id):
+        with sqlite3.connect(config.DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, date FROM athletes WHERE competition_id = ?", (comp_id,))
+            rows = cursor.fetchall()
+            cursor.execute("SELECT date FROM competitions WHERE id = ?", (comp_id,))
+            compet_date = datetime.strptime(cursor.fetchone()[0], "%d.%m.%Y")
+            for ath_id, date in rows:
+                birth_date = datetime.strptime(date, "%d.%m.%Y")
+                age = compet_date.year - birth_date.year
+                if (compet_date.month, compet_date.day) < (birth_date.month, birth_date.day):
+                    age -= 1
+                cursor.execute("UPDATE athletes SET age = ? WHERE id = ?", (age, ath_id))
 
 
