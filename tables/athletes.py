@@ -16,7 +16,7 @@ class AthletesFrame(tk.Frame):
         super().__init__(parent)
 
         heads = ['№', 'ФИО', 'Пол', 'Дата рождения', 'Полных лет', 'Вес', 'Категория', 'Регион', 'Клуб', 'Тренер',
-                 'Массоги', 'Тыли']
+                 'Массоги', 'Тыли', 'ID']
         self.current_id = None
         self.table = ttk.Treeview(self, columns=heads, show='headings', selectmode="browse")
         for header in heads:
@@ -33,6 +33,7 @@ class AthletesFrame(tk.Frame):
         self.table.column('Тренер', stretch=True, minwidth=80, width=80)
         self.table.column('Массоги', stretch=True, minwidth=80, width=80)
         self.table.column('Тыли', stretch=True, minwidth=80, width=80)
+        self.table.column('ID', stretch=False, minwidth=50, width=50)
         self.table.bind('<Button-3>', self.right_button_menu)
         self.table.bind("<Double-1>", self.on_double_click)
 
@@ -43,8 +44,7 @@ class AthletesFrame(tk.Frame):
         back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_competitions_table, width=10)
         add_button = ttk.Button(buttons_frame, text="Добавить одного", width=20)
         add_list_button = ttk.Button(buttons_frame, text="Добавить список", command=self.add_list_athletes, width=20)
-        clear_list_button = ttk.Button(buttons_frame, text="Очистить список", command=self.clear_list_athletes,
-                                       width=20)
+        clear_list_button = ttk.Button(buttons_frame, text="Удалить всех", command=self.clear_list_athletes, width=20)
 
         back_button.pack(side="left", padx=5, pady=5)
         add_button.pack(side="left", padx=5, pady=5)
@@ -61,13 +61,12 @@ class AthletesFrame(tk.Frame):
             self.table.selection_set(item)
             self.table.focus(item)
             values = self.table.item(item, "values")
-            print(values)
 
         event.widget.focus()
         file_menu = tk.Menu(self)
         file_menu.add_command(label='Изменить', command=lambda: print(self.table.item(item).get('values')))
         file_menu.add_separator()
-        file_menu.add_command(label='Удалить', command=lambda: self.delete_athlete(values[0]))
+        file_menu.add_command(label='Удалить', command=lambda: self.delete_athlete(values[-1]))
         file_menu.post(event.x_root, event.y_root)
 
     def on_double_click(self, event):
@@ -86,7 +85,7 @@ class AthletesFrame(tk.Frame):
         athletes = cursor.fetchall()
         conn.close()
         for num, row in enumerate(athletes):
-            values = [num + 1] + [i for i in row if i != 1][2:]
+            values = [num + 1] + [i for i in row if i != 1][2:] + [row[0]]
             self.table.insert("", tk.END, values=values)
 
     def show_competitions_table(self):
@@ -143,11 +142,10 @@ class AthletesFrame(tk.Frame):
 
     def delete_athlete(self, athlete_id):
         answer = messagebox.askyesno("Удалить участника", "УДАЛИТЬ?")
-        print(athlete_id)
         if answer:
             conn = sqlite3.connect(config.DB_FILE)
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM athletes WHERE competition_id = ?", (athlete_id,))
+            cursor.execute("DELETE FROM athletes WHERE id = ?", (athlete_id,))
             conn.commit()
             cursor.close()
             self.load_table(self.current_id)

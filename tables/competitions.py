@@ -9,11 +9,11 @@ class CompetitionsFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
-        heads = ['№', 'Название соревнования', 'Дата', 'Город', 'Клуб']
+        heads = ['ID', 'Название соревнования', 'Дата', 'Город', 'Клуб']
         self.table = ttk.Treeview(self, columns=heads, show='headings', selectmode="browse")
         for header in heads:
             self.table.heading(header, text=header, anchor='w')
-        self.table.column('№', stretch=False, minwidth=50, width=50)
+        self.table.column('ID', stretch=False, minwidth=50, width=50)
         self.table.column('Название соревнования', stretch=True, width=150, minwidth=110)
         self.table.column('Дата', stretch=False, minwidth=150, width=150)
         self.table.column('Город', stretch=False, minwidth=150, width=150)
