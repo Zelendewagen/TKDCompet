@@ -25,11 +25,10 @@ class CompetitionsFrame(tk.Frame):
         self.table.configure(yscroll=self.scrollbar.set)
 
         buttons_frame = tk.Frame(self)
-        back_button = ttk.Button(buttons_frame, text="Создать новое соревнование",
-                                command=self.open_add_change_window)
+        back_button = ttk.Button(buttons_frame, text="Создать новое соревнование", command=self.open_add_change_window)
         back_button.pack(side="left", padx=5, pady=5)
 
-        buttons_frame.pack(fill="both", padx=5)
+        buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
         self.table.pack(side="left", fill="both", padx=10, pady=10, expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
@@ -118,12 +117,12 @@ class CompetitionsFrame(tk.Frame):
                 entries[i].insert(0, values[i + 1])
 
             change_button = ttk.Button(buttons_frame, text='Изменить', width=15,
-                                      command=lambda: (
-                                          self.change_competition(entries, num=values[0]), window.destroy()))
+                                       command=lambda: (
+                                           self.change_competition(entries, num=values[0]), window.destroy()))
             change_button.pack(fill="both", expand=True, side="left", padx=5)
         else:
             add_button = ttk.Button(buttons_frame, text='Добавить', width=15,
-                                   command=lambda: (self.create_competition(entries), window.destroy()))
+                                    command=lambda: (self.create_competition(entries), window.destroy()))
             add_button.pack(fill="both", expand=True, side="left", padx=5)
 
         cancel_button2 = ttk.Button(buttons_frame, text="Отмена", command=window.destroy, width=15)

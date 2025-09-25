@@ -4,8 +4,8 @@ user32 = ctypes.windll.user32
 screen_width = user32.GetSystemMetrics(0)
 screen_height = user32.GetSystemMetrics(1)
 
-main_width = int(screen_width * 0.4)
-main_height = int(screen_height * 0.4)
+main_width = int(screen_width * 0.6)
+main_height = int(screen_height * 0.6)
 
 top_width = int(screen_width * 0.2)
 top_height = int(screen_height * 0.2)

@@ -46,6 +46,7 @@ def create_db():
                 weight TEXT,
                 category TEXT,
                 region TEXT,
+                club TEXT,
                 trainer TEXT,
                 massogi TEXT,
                 tyli TEXT,
@@ -67,7 +68,7 @@ style.theme_use("vista")
 style.configure("Treeview",
                 borderwidth=1,
                 relief="solid")
-print(style.theme_names())
+# print(style.theme_names())
 #######################################################################################################################
 main = tk.Frame(root)
 main.pack(fill="both", expand=True)
