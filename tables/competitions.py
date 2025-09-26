@@ -135,6 +135,9 @@ class CompetitionsFrame(tk.Frame):
                 cursor.execute("UPDATE competitions"
                                " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
                                parameters)
+                conn.commit()
+                cursor.close()
+                # ОБНОВЛЕННИЕ У СПОРТСМЕНОВ (УПРОСТИТЬ ЭТО!)
                 for child in self.master.winfo_children():
                     if not child.winfo_ismapped():
                         child.update_ages(comp_id)
@@ -142,8 +145,9 @@ class CompetitionsFrame(tk.Frame):
                 cursor.execute(
                     "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     parameters)
-            conn.commit()
-            cursor.close()
+                conn.commit()
+                cursor.close()
+
             self.update_table()
             self.top_window.destroy()
         except ValueError:

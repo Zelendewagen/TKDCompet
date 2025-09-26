@@ -225,9 +225,9 @@ class AthletesFrame(tk.Frame):
             parameters += (age,)
             if change:
                 parameters += (athlete_id,)
-                cursor.execute("UPDATE athletes"
-                               " SET name = ?, gender = ?, date = ?, weight = ?, category = ?, region = ?, club = ?, trainer = ?, tyli = ?, massogi = ?, age = ? WHERE id = ?",
-                               parameters)
+                cursor.execute(
+                    "UPDATE athletes SET name = ?, gender = ?, date = ?, weight = ?, category = ?, region = ?, club = ?, trainer = ?, tyli = ?, massogi = ?, age = ? WHERE id = ?",
+                    parameters)
             else:
                 parameters += (self.current_id,)
                 cursor.execute(
@@ -242,17 +242,17 @@ class AthletesFrame(tk.Frame):
             messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
 
     def update_ages(self, comp_id):
-        with sqlite3.connect(config.DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, date FROM athletes WHERE competition_id = ?", (comp_id,))
-            rows = cursor.fetchall()
-            cursor.execute("SELECT date FROM competitions WHERE id = ?", (comp_id,))
-            compet_date = datetime.strptime(cursor.fetchone()[0], "%d.%m.%Y")
-            for ath_id, date in rows:
-                birth_date = datetime.strptime(date, "%d.%m.%Y")
-                age = compet_date.year - birth_date.year
-                if (compet_date.month, compet_date.day) < (birth_date.month, birth_date.day):
-                    age -= 1
-                cursor.execute("UPDATE athletes SET age = ? WHERE id = ?", (age, ath_id))
-
-
+        conn = sqlite3.connect(config.DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, date FROM athletes WHERE competition_id = ?", (comp_id,))
+        rows = cursor.fetchall()
+        cursor.execute("SELECT date FROM competitions WHERE id = ?", (comp_id,))
+        compet_date = datetime.strptime(cursor.fetchone()[0], "%d.%m.%Y")
+        for ath_id, date in rows:
+            birth_date = datetime.strptime(date, "%d.%m.%Y")
+            age = compet_date.year - birth_date.year
+            if (compet_date.month, compet_date.day) < (birth_date.month, birth_date.day):
+                age -= 1
+            cursor.execute("UPDATE athletes SET age = ? WHERE id = ?", (age, ath_id))
+        conn.commit()
+        cursor.close()
