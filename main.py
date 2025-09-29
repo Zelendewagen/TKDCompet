@@ -62,6 +62,7 @@ root = tk.Tk()
 root.title("TKD competitions manager")
 root.geometry(config.geometry(root, config.main_width, config.main_height))
 root.option_add("*tearOff", tk.FALSE)
+root.iconbitmap("icons/tkd.ico")
 #######################################################################################################################
 style = ttk.Style()
 style.theme_use("vista")
