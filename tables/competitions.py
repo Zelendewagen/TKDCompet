@@ -10,6 +10,17 @@ class CompetitionsFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
+        self.create_top_buttons()
+        self.create_table()
+
+    def create_top_buttons(self):
+        buttons_frame = tk.Frame(self)
+        back_button = ttk.Button(buttons_frame, text="Создать новое соревнование", command=self.open_add_change_window)
+        back_button.pack(side="left", padx=5, pady=5)
+
+        buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
+
+    def create_table(self):
         heads = ['ID', 'Название соревнования', 'Дата', 'Город', 'Клуб']
         self.table = ttk.Treeview(self, columns=heads, show='headings', selectmode="browse")
         for header in heads:
@@ -22,16 +33,11 @@ class CompetitionsFrame(tk.Frame):
         self.table.bind('<Button-3>', self.right_button_menu)
         self.table.bind("<Double-1>", self.on_double_click)
 
-        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.table.yview)
-        self.table.configure(yscroll=self.scrollbar.set)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.table.yview)
+        self.table.configure(yscroll=scrollbar.set)
 
-        buttons_frame = tk.Frame(self)
-        back_button = ttk.Button(buttons_frame, text="Создать новое соревнование", command=self.open_add_change_window)
-        back_button.pack(side="left", padx=5, pady=5)
-
-        buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
-        self.table.pack(side="left", fill="both", padx=10, pady=10, expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+        self.table.pack(side="left", fill="both", padx=(10, 0), pady=10, expand=True)
+        scrollbar.pack(side="right", fill="y")
 
     def right_button_menu(self, event):
         item = self.table.identify_row(event.y)
@@ -50,14 +56,11 @@ class CompetitionsFrame(tk.Frame):
         item = self.table.identify_row(event.y)
         if item:
             values = self.table.item(item, "values")
-        self.show_athletes_table(values[0])
+            self.show_athletes_table(values[0])
 
     def show_athletes_table(self, comp_id):
-        for child in self.master.winfo_children():
-            if not child.winfo_ismapped():
-                child.pack(fill="both", expand=True)
-                child.load_table(comp_id)
-        self.pack_forget()
+        self.master.show_table('спортсмены', self)
+        self.master.athletes_frame.load_table(comp_id)
 
     def update_table(self):
         for row in self.table.get_children():
@@ -77,7 +80,7 @@ class CompetitionsFrame(tk.Frame):
         self.top_window.title(title)
         self.top_window.geometry(config.geometry(self.master, config.cmp_window_width, config.cmp_window_height))
         self.top_window.resizable(False, False)
-        self.top_window.attributes("-topmost", True)
+        self.top_window.transient(self)
 
         frame = tk.Frame(self.top_window)
         frame.pack(fill="both", padx=(10, 50), pady=10, expand=True)
@@ -138,9 +141,7 @@ class CompetitionsFrame(tk.Frame):
                 conn.commit()
                 cursor.close()
                 # ОБНОВЛЕННИЕ У СПОРТСМЕНОВ (УПРОСТИТЬ ЭТО!)
-                for child in self.master.winfo_children():
-                    if not child.winfo_ismapped():
-                        child.update_ages(comp_id)
+                self.master.athletes_frame.update_ages(comp_id)
             else:
                 cursor.execute(
                     "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",

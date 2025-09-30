@@ -15,9 +15,35 @@ class AthletesFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
+        self.current_id = None
+        self.create_top_buttons()
+        self.create_table()
+
+    def create_top_buttons(self):
+        buttons_frame = tk.Frame(self)
+        back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_competitions_table, width=10)
+        add_button = ttk.Button(buttons_frame, text="Добавить участника", command=self.open_add_change_athlete_window,
+                                width=20)
+        add_list_button = ttk.Button(buttons_frame, text="Добавить список", command=self.add_list_athletes, width=20)
+        clear_list_button = ttk.Button(buttons_frame, text="Удалить всех", command=self.clear_list_athletes, width=20)
+        save_list = ttk.Button(buttons_frame, text="Сохранить таблицу", command=self.clear_list_athletes,
+                                       width=20)
+        create_tyli = ttk.Button(buttons_frame, text="Тыли", command=self.show_tyli, width=20)
+        create_massogi = ttk.Button(buttons_frame, text="Массоги", command=self.show_massogi, width=20)
+
+        back_button.pack(side="left", padx=5, pady=5)
+        add_button.pack(side="left", padx=5, pady=5)
+        add_list_button.pack(side="left", padx=5, pady=5)
+        clear_list_button.pack(side="left", padx=5, pady=5)
+        save_list.pack(side="left", padx=5, pady=5)
+        create_tyli.pack(side="left", padx=5, pady=5)
+        create_massogi.pack(side="left", padx=5, pady=5)
+
+        buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
+
+    def create_table(self):
         heads = ['№', 'ФИО', 'Пол', 'Дата рождения', 'Полных лет', 'Вес', 'Категория', 'Регион', 'Клуб', 'Тренер',
                  'Тыли', 'Массоги', 'ID']
-        self.current_id = None
         self.table = ttk.Treeview(self, columns=heads, show='headings', selectmode="browse")
         for header in heads:
             self.table.heading(header, text=header, anchor='w')
@@ -37,24 +63,10 @@ class AthletesFrame(tk.Frame):
         self.table.bind('<Button-3>', self.right_button_menu)
         self.table.bind("<Double-1>", self.on_double_click)
 
-        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.table.yview)
-        self.table.configure(yscroll=self.scrollbar.set)
-
-        buttons_frame = tk.Frame(self)
-        back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_competitions_table, width=10)
-        add_button = ttk.Button(buttons_frame, text="Добавить участника", command=self.open_add_change_athlete_window,
-                                width=20)
-        add_list_button = ttk.Button(buttons_frame, text="Добавить список", command=self.add_list_athletes, width=20)
-        clear_list_button = ttk.Button(buttons_frame, text="Удалить всех", command=self.clear_list_athletes, width=20)
-
-        back_button.pack(side="left", padx=5, pady=5)
-        add_button.pack(side="left", padx=5, pady=5)
-        add_list_button.pack(side="left", padx=5, pady=5)
-        clear_list_button.pack(side="left", padx=5, pady=5)
-
-        buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
-        self.table.pack(side="left", fill="both", padx=10, pady=10, expand=True)
-        self.scrollbar.pack(side="right", fill="y", pady=10)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.table.yview)
+        self.table.configure(yscroll=scrollbar.set)
+        self.table.pack(side="left", fill="both", padx=(10, 0), pady=10, expand=True)
+        scrollbar.pack(side="right", fill="y", pady=10)
 
     def right_button_menu(self, event):
         item = self.table.identify_row(event.y)
@@ -89,12 +101,6 @@ class AthletesFrame(tk.Frame):
         for num, row in enumerate(athletes):
             values = [num + 1] + [i for i in row[2:]] + [row[0]]
             self.table.insert("", tk.END, values=values)
-
-    def show_competitions_table(self):
-        for widget in self.master.winfo_children():
-            if not widget.winfo_ismapped():
-                widget.pack(fill="both", expand=True)
-        self.pack_forget()
 
     def add_list_athletes(self):
         file = askopenfilename(title='Открыть', filetypes=(("Таблица Excel", "*.xls"),))
@@ -160,7 +166,7 @@ class AthletesFrame(tk.Frame):
         self.top_window.title('Изменить участника')
         self.top_window.geometry(config.geometry(self.master, config.athl_window_width, config.athl_window_height))
         self.top_window.resizable(False, False)
-        self.top_window.attributes("-topmost", True)
+        self.top_window.transient(self)
 
         frame = tk.Frame(self.top_window)
         frame.pack(fill="both", padx=(10, 50), pady=10, expand=True)
@@ -241,7 +247,17 @@ class AthletesFrame(tk.Frame):
             self.top_window.destroy()
             messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
 
-    def update_ages(self, comp_id):
+    def show_competitions_table(self):
+        self.master.show_table('соревнования', self)
+
+    def show_tyli(self):
+        self.master.show_table('тыли', self)
+
+    def show_massogi(self):
+        pass
+
+    @staticmethod
+    def update_ages(comp_id):
         conn = sqlite3.connect(config.DB_FILE)
         cursor = conn.cursor()
         cursor.execute("SELECT id, date FROM athletes WHERE competition_id = ?", (comp_id,))
