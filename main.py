@@ -25,6 +25,7 @@ class MainFrame(tk.Frame):
     def check_database(self):
         db_path = os.path.join(DB_FOLDER, DB_FILE)
         if os.path.exists(db_path):
+            # self.create_db()
             self.competitions_frame.update_table()
         else:
             messagebox.showwarning("TKD", f"Новая база данных: {db_path}")
@@ -44,27 +45,52 @@ class MainFrame(tk.Frame):
                                 club TEXT,
                                 main_judge TEXT,
                                 judge TEXT,
-                                secretary TEXT
-                            )
+                                secretary TEXT)
                             """)
 
         cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS athletes (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        competition_id INTEGER,
-                        name TEXT NOT NULL,
-                        gender TEXT,
-                        date TEXT,
-                        age TEXT,
-                        weight TEXT,
-                        category TEXT,
-                        region TEXT,
-                        club TEXT,
-                        trainer TEXT,
-                        tyli TEXT,
-                        massogi TEXT,
-                        FOREIGN KEY (competition_id) REFERENCES competitions (id))
+                            CREATE TABLE IF NOT EXISTS athletes (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                competition_id INTEGER,
+                                name TEXT NOT NULL,
+                                gender TEXT,
+                                date TEXT,
+                                age TEXT,
+                                weight TEXT,
+                                category TEXT,
+                                location TEXT,
+                                club TEXT,
+                                trainer TEXT,
+                                tyli TEXT,
+                                massogi TEXT,
+                                FOREIGN KEY (competition_id) REFERENCES competitions (id))
                     """)
+
+        cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS tyli (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                competition_id INTEGER,
+                                gender TEXT,
+                                age_form TEXT,
+                                age_to TEXT,
+                                category_from TEXT,
+                                category_to TEXT,
+                                FOREIGN KEY (competition_id) REFERENCES competitions (id))
+                            """)
+
+        cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS massogi (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                competition_id INTEGER,
+                                gender TEXT,
+                                age_form TEXT,
+                                age_to TEXT,
+                                category_from TEXT,
+                                category_to TEXT,
+                                weight_from TEXT,
+                                weight_to TEXT,
+                                FOREIGN KEY (competition_id) REFERENCES competitions (id))
+                            """)
 
         conn.commit()
         conn.close()

@@ -27,7 +27,7 @@ class AthletesFrame(tk.Frame):
         add_list_button = ttk.Button(buttons_frame, text="Добавить список", command=self.add_list_athletes, width=20)
         clear_list_button = ttk.Button(buttons_frame, text="Удалить всех", command=self.clear_list_athletes, width=20)
         save_list = ttk.Button(buttons_frame, text="Сохранить таблицу", command=self.clear_list_athletes,
-                                       width=20)
+                               width=20)
         create_tyli = ttk.Button(buttons_frame, text="Тыли", command=self.show_tyli, width=20)
         create_massogi = ttk.Button(buttons_frame, text="Массоги", command=self.show_massogi, width=20)
 
@@ -42,7 +42,7 @@ class AthletesFrame(tk.Frame):
         buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
 
     def create_table(self):
-        heads = ['№', 'ФИО', 'Пол', 'Дата рождения', 'Полных лет', 'Вес', 'Категория', 'Регион', 'Клуб', 'Тренер',
+        heads = ['№', 'ФИО', 'Пол', 'Дата рождения', 'Полных лет', 'Вес', 'Категория', 'Город', 'Клуб', 'Тренер',
                  'Тыли', 'Массоги', 'ID']
         self.table = ttk.Treeview(self, columns=heads, show='headings', selectmode="browse")
         for header in heads:
@@ -54,7 +54,7 @@ class AthletesFrame(tk.Frame):
         self.table.column('Полных лет', stretch=False, minwidth=80, width=80)
         self.table.column('Вес', stretch=False, minwidth=50, width=50)
         self.table.column('Категория', stretch=False, minwidth=80, width=80)
-        self.table.column('Регион', stretch=True, minwidth=80, width=80)
+        self.table.column('Город', stretch=True, minwidth=80, width=80)
         self.table.column('Клуб', stretch=True, minwidth=80, width=80)
         self.table.column('Тренер', stretch=True, minwidth=80, width=80)
         self.table.column('Тыли', stretch=True, minwidth=80, width=80)
@@ -129,7 +129,7 @@ class AthletesFrame(tk.Frame):
                             self.current_id, row[2], row[1], row[3].strftime("%d.%m.%Y"), age, int(float(row[4])),
                             row[6], row[8], row[11], row[12], row[13], row[14])
                         cursor.execute(
-                            "INSERT INTO athletes (competition_id, name, gender, date, age, weight, category, region, club, trainer, tyli, massogi) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                            "INSERT INTO athletes (competition_id, name, gender, date, age, weight, category, location, club, trainer, tyli, massogi) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                             parameters)
                     conn.commit()
                     cursor.close()
@@ -163,7 +163,8 @@ class AthletesFrame(tk.Frame):
     def open_add_change_athlete_window(self, change=False, athlete_id=None):
         self.top_window = tk.Toplevel()
         self.top_window.grab_set()
-        self.top_window.title('Изменить участника')
+        title = 'Изменить участника' if change else 'Добавить участника'
+        self.top_window.title(title)
         self.top_window.geometry(config.geometry(self.master, config.athl_window_width, config.athl_window_height))
         self.top_window.resizable(False, False)
         self.top_window.transient(self)
@@ -172,7 +173,7 @@ class AthletesFrame(tk.Frame):
         frame.pack(fill="both", padx=(10, 50), pady=10, expand=True)
         frame.columnconfigure(index=1, weight=250)
 
-        labels = ['ФИО', 'Пол', 'Дата рождения', 'Вес', 'Категория', 'Регион', 'Клуб', 'Тренер', 'Тыли', 'Массоги']
+        labels = ['ФИО', 'Пол', 'Дата рождения', 'Вес', 'Категория', 'Город', 'Клуб', 'Тренер', 'Тыли', 'Массоги']
         for i, text in enumerate(labels):
             label = tk.Label(frame, text=text)
             if i == len(labels) - 1:
@@ -232,12 +233,12 @@ class AthletesFrame(tk.Frame):
             if change:
                 parameters += (athlete_id,)
                 cursor.execute(
-                    "UPDATE athletes SET name = ?, gender = ?, date = ?, weight = ?, category = ?, region = ?, club = ?, trainer = ?, tyli = ?, massogi = ?, age = ? WHERE id = ?",
+                    "UPDATE athletes SET name = ?, gender = ?, date = ?, weight = ?, category = ?, location = ?, club = ?, trainer = ?, tyli = ?, massogi = ?, age = ? WHERE id = ?",
                     parameters)
             else:
                 parameters += (self.current_id,)
                 cursor.execute(
-                    "INSERT INTO athletes (name, gender, date, weight, category, region, club, trainer, tyli, massogi, age, competition_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO athletes (name, gender, date, weight, category, location, club, trainer, tyli, massogi, age, competition_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     parameters)
             conn.commit()
             cursor.close()
