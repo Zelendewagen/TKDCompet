@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 import tkinter as tk
 
 import config
+from config import DB_FILE
 
 
 class CompetitionsFrame(tk.Frame):
@@ -16,9 +17,9 @@ class CompetitionsFrame(tk.Frame):
     def create_top_buttons(self):
         buttons_frame = tk.Frame(self)
         back_button = ttk.Button(buttons_frame, text="Создать новое соревнование", command=self.open_add_change_window)
-        back_button.pack(side="left", padx=5, pady=5)
+        back_button.pack(side="left")
 
-        buttons_frame.pack(fill="both", padx=5, pady=(10, 0))
+        buttons_frame.pack(fill="both", pady=(0, 10))
 
     def create_table(self):
         heads = ['ID', 'Название соревнования', 'Дата', 'Город', 'Клуб']
@@ -26,17 +27,17 @@ class CompetitionsFrame(tk.Frame):
         for header in heads:
             self.table.heading(header, text=header, anchor='w')
         self.table.column('ID', stretch=False, minwidth=50, width=50)
-        self.table.column('Название соревнования', stretch=True, width=150, minwidth=110)
+        self.table.column('Название соревнования', stretch=False, width=400, minwidth=150)
         self.table.column('Дата', stretch=False, minwidth=150, width=150)
         self.table.column('Город', stretch=False, minwidth=150, width=150)
-        self.table.column('Клуб', stretch=True, width=150, minwidth=110)
+        self.table.column('Клуб', stretch=True)
         self.table.bind('<Button-3>', self.right_button_menu)
         self.table.bind("<Double-1>", self.on_double_click)
 
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.table.yview)
         self.table.configure(yscroll=scrollbar.set)
 
-        self.table.pack(side="left", fill="both", padx=(10, 0), pady=10, expand=True)
+        self.table.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
     def right_button_menu(self, event):
@@ -57,21 +58,6 @@ class CompetitionsFrame(tk.Frame):
         if item:
             values = self.table.item(item, "values")
             self.show_athletes_table(values[0])
-
-    def show_athletes_table(self, comp_id):
-        self.master.show_table('спортсмены', self)
-        self.master.athletes_frame.load_table(comp_id)
-
-    def update_table(self):
-        for row in self.table.get_children():
-            self.table.delete(row)
-        conn = sqlite3.connect(config.DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM competitions")
-        competitions = cursor.fetchall()
-        conn.close()
-        for row in competitions:
-            self.table.insert("", tk.END, values=row[:-3])
 
     def open_add_change_window(self, change=False, num=None):
         self.top_window = tk.Toplevel()
@@ -103,14 +89,13 @@ class CompetitionsFrame(tk.Frame):
                 entries[i].grid(column=1, row=i, sticky='ew', pady=(0, 10))
 
         buttons_frame = tk.Frame(frame)
-        buttons_frame.grid(columnspan=2, row=len(labels), pady=20, padx=100, sticky="ew")
+        buttons_frame.grid(columnspan=2, row=len(labels), pady=20, padx=(20, 0), sticky="ew")
 
         if change:
-            conn = sqlite3.connect(config.DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM competitions WHERE id =?", (num,))
-            values = cursor.fetchone()
-            conn.close()
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM competitions WHERE id =?", (num,))
+                values = cursor.fetchone()
             for i, entry in enumerate(entries):
                 entries[i].insert(0, values[i + 1])
 
@@ -131,23 +116,19 @@ class CompetitionsFrame(tk.Frame):
             parameters += (i.get(),)
         try:
             datetime.strptime(parameters[1], "%d.%m.%Y")
-            conn = sqlite3.connect(config.DB_FILE)
-            cursor = conn.cursor()
-            if change:
-                parameters += (comp_id,)
-                cursor.execute("UPDATE competitions"
-                               " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
-                               parameters)
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                if change:
+                    parameters += (comp_id,)
+                    cursor.execute("UPDATE competitions"
+                                   " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
+                                   parameters)
+                    self.master.athletes_frame.update_ages(comp_id)
+                else:
+                    cursor.execute(
+                        "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        parameters)
                 conn.commit()
-                cursor.close()
-                # ОБНОВЛЕННИЕ У СПОРТСМЕНОВ (УПРОСТИТЬ ЭТО!)
-                self.master.athletes_frame.update_ages(comp_id)
-            else:
-                cursor.execute(
-                    "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    parameters)
-                conn.commit()
-                cursor.close()
 
             self.update_table()
             self.top_window.destroy()
@@ -158,10 +139,23 @@ class CompetitionsFrame(tk.Frame):
     def delete_competition(self, num):
         answer = messagebox.askyesno("Удалить соревнование", "УДАЛИТЬ?")
         if answer:
-            conn = sqlite3.connect(config.DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM competitions WHERE id = ?", (num,))
-            cursor.execute("DELETE FROM athletes WHERE competition_id = ?", (num,))
-            conn.commit()
-            cursor.close()
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM competitions WHERE id = ?", (num,))
+                cursor.execute("DELETE FROM athletes WHERE competition_id = ?", (num,))
+                conn.commit()
             self.update_table()
+
+    def update_table(self):
+        for row in self.table.get_children():
+            self.table.delete(row)
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM competitions")
+            competitions = cursor.fetchall()
+        for row in competitions:
+            self.table.insert("", tk.END, values=row[:-3])
+
+    def show_athletes_table(self, comp_id):
+        self.master.show_table('спортсмены', self)
+        self.master.athletes_frame.load_table(comp_id)
