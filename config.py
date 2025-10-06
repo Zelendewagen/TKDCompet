@@ -13,10 +13,11 @@ cmp_window_height = int(screen_height * 0.2)
 athl_window_width = int(screen_width * 0.15)
 athl_window_height = int(screen_height * 0.27)
 
-
 tyli_window_width = int(screen_width * 0.1)
-tyli_window_height = int(screen_height * 0.12)
+tyli_window_height = int(screen_height * 0.11)
 
+massogi_window_width = int(screen_width * 0.1)
+massogi_window_height = int(screen_height * 0.13)
 
 DB_FILE = "data.db"
 DB_FOLDER = "."

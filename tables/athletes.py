@@ -6,6 +6,8 @@ import tkinter as tk
 from tkinter.filedialog import askopenfilename
 
 import pandas as pd
+from openpyxl.styles import Border, Side
+from openpyxl.workbook import Workbook
 
 import config
 from config import DB_FILE
@@ -27,7 +29,7 @@ class AthletesFrame(tk.Frame):
                                 width=20)
         add_list_button = ttk.Button(buttons_frame, text="Добавить список", command=self.add_list_athletes, width=20)
         clear_list_button = ttk.Button(buttons_frame, text="Удалить всех", command=self.delete_all_athletes, width=20)
-        save_list = ttk.Button(buttons_frame, text="Сохранить таблицу", command=self.delete_all_athletes,
+        save_list = ttk.Button(buttons_frame, text="Сохранить таблицу", command=self.save_xls,
                                width=20)
         create_tyli = ttk.Button(buttons_frame, text="Тыли", command=self.show_tyli, width=20)
         create_massogi = ttk.Button(buttons_frame, text="Массоги", command=self.show_massogi, width=20)
@@ -181,7 +183,8 @@ class AthletesFrame(tk.Frame):
                                 if (compet_date.month, compet_date.day) < (birth_date.month, birth_date.day):
                                     age -= 1
                                 parameters = (
-                                    self.current_id, row[2], row[1], row[3].strftime("%d.%m.%Y"), age, int(float(row[4])),
+                                    self.current_id, row[2], row[1], row[3].strftime("%d.%m.%Y"), age,
+                                    int(float(row[4])),
                                     self.categories.index(row[6]), row[8], row[11], row[12], row[13], row[14])
                                 cursor.execute("""INSERT INTO athletes (competition_id, name, gender, date, age, weight, category, location, club, trainer, tyli, massogi) 
                                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -267,10 +270,11 @@ class AthletesFrame(tk.Frame):
 
     def show_tyli(self):
         self.master.show_table('тыли', self)
-        self.master.tyli_frame.load_category_table(self.current_id)
+        self.master.tyli_frame.update_all_users(self.current_id)
 
     def show_massogi(self):
-        pass
+        self.master.show_table('массоги', self)
+        self.master.massogi_frame.update_all_users(self.current_id)
 
     @staticmethod
     def update_ages(comp_id):
@@ -286,3 +290,34 @@ class AthletesFrame(tk.Frame):
                 if (compet_date.month, compet_date.day) < (birth_date.month, birth_date.day):
                     age -= 1
                 cursor.execute("UPDATE athletes SET age = ? WHERE id = ?", (age, ath_id))
+
+    def save_xls(self):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Users"
+
+        headers = ["ФИО", "дата рождения", "Пол", "Вес", "Квалификация", "Клуб", "Тренер", "Возраст"]
+        ws.append(headers)
+
+        ws.append([1, "Иван", 25, 4, 5, 6, 7, 8])
+        ws.append([2, "Мария", 30, 4, 5, 6, 7, 8])
+        ws.append([3, "Петр", 22, 4, 5, 6, 7, 8])
+
+        thick_border = Border(
+            left=Side(style="thin", color="000000"),
+            right=Side(style="thin", color="000000"),
+            top=Side(style="thin", color="000000"),
+            bottom=Side(style="thin", color="000000"))
+
+        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, max_col=len(headers)):
+            for cell in row:
+                cell.border = thick_border
+
+
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM competitions WHERE id = ?", (self.current_id,))
+            name = cursor.fetchone()[0]
+
+        wb.save(f"{name}.xlsx")
+        messagebox.showinfo("TKD",f"Таблица сохранена: {name}.xlsx")

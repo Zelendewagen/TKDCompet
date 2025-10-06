@@ -1,6 +1,9 @@
+import json
 import os
 import sqlite3
+import traceback
 from datetime import datetime
+from collections import Counter
 from tkinter import ttk, messagebox
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
@@ -18,6 +21,10 @@ class TyliFrame(tk.Frame):
         self.category_table = None
         self.unallocated_table = None
         self.athletes_table = None
+        self.all_users = []
+        self.located_users = []
+        self.unallocated_users = []
+        self.overlap_users = {}
 
         self.create_top_buttons()
         self.create_category_table()
@@ -28,7 +35,7 @@ class TyliFrame(tk.Frame):
 
     def create_top_buttons(self):
         buttons_frame = tk.Frame(self)
-        back_button = ttk.Button(buttons_frame, text="\u2190", command=self.back, width=10)
+        back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_athletes_table, width=10)
         add_category = ttk.Button(buttons_frame, text="Добавить категорию",
                                   command=self.open_add_change_category_window, width=20)
 
@@ -41,13 +48,14 @@ class TyliFrame(tk.Frame):
         self.category_table = self.create_table(
             label_text="Параметры",
             headers=['№', 'Пол', 'Возраст', 'Категория', 'Участников', 'Совпадений', 'ID'])
+        self.category_table.bind("<<TreeviewSelect>>", self.on_select)
         self.category_table.bind("<Double-1>", self.on_double_click)
-        # self.category_table.bind('<Button-3>', self.right_button_menu)
+        self.category_table.bind('<Button-3>', self.right_button_menu)
 
     def create_unallocated_table(self):
         self.unallocated_table = self.create_table(
             label_text="Не распределенные",
-            headers=['ID', 'ФИО', 'Полных лет', 'Категория', 'Город', 'Тренер'],
+            headers=['№', 'ФИО', 'Полных лет', 'Категория', 'Город', 'Тренер', 'ID', ],
             padx=10)
 
     def create_athletes_table(self):
@@ -61,13 +69,15 @@ class TyliFrame(tk.Frame):
         label = tk.Label(frame, text=label_text, font=("Arial", 14), width=20)
         label.pack(side="top", pady=(5, 2))
 
-        table = ttk.Treeview(frame, columns=headers, show='headings')
+        table = ttk.Treeview(frame, columns=headers, show='headings', selectmode="browse")
+        table.tag_configure("blue", background="#f8e8ba")
+        table.tag_configure("red", background="#ffa1a1")
 
         total_width = frame.winfo_reqwidth() or 1
         col_width = total_width // len(headers)
         for header in headers:
             table.heading(header, text=header)
-            if header == 'ID':
+            if header in ['ID', '№', ]:
                 table.column(header, stretch=False, anchor='center', minwidth=30, width=30)
             else:
                 table.column(header, width=col_width, anchor='center')
@@ -89,15 +99,21 @@ class TyliFrame(tk.Frame):
 
         event.widget.focus()
         file_menu = tk.Menu(self)
-        file_menu.add_command(label='Изменить', command=lambda: self.open_add_change_window(change=True, num=values[0]))
-        file_menu.add_command(label='Удалить', command=lambda: self.delete_competition(values[0]))
+        file_menu.add_command(label='Изменить', command=lambda: self.open_add_change_category_window(True, values[-1]))
+        file_menu.add_command(label='Удалить', command=lambda: self.delete_category(values[-1]))
         file_menu.post(event.x_root, event.y_root)
+
+    def on_select(self, event):
+        item = self.category_table.selection()
+        if item:
+            values = self.category_table.item(item, "values")
+            self.load_athletes_table(values[-1])
 
     def on_double_click(self, event):
         item = self.category_table.identify_row(event.y)
         if item:
             values = self.category_table.item(item, "values")
-            self.load_athletes_table(values[0])
+            self.open_add_change_category_window(True, values[-1])
 
     def open_add_change_category_window(self, change=False, compet_id=None):
         self.top_window = tk.Toplevel()
@@ -130,7 +146,7 @@ class TyliFrame(tk.Frame):
         tk.Label(frame, text="Категория от:").grid(row=2, column=0, sticky="w")
         tk.Label(frame, text="до:").grid(row=2, column=2, sticky="w", padx=(10, 0))
         entries[3].grid(row=2, column=1, sticky="w")
-        entries[3].bind("<<ComboboxSelected>>", lambda x: self.update_entry_categoties(entries[3], entries[4]))
+        entries[3].bind("<<ComboboxSelected>>", lambda x: self.update_entry_categories(entries[3], entries[4]))
         entries[4].grid(row=2, column=3, sticky="w")
 
         buttons_frame = tk.Frame(frame)
@@ -139,10 +155,13 @@ class TyliFrame(tk.Frame):
         if change:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tyli WHERE competition_id =?", (compet_id,))
+                cursor.execute("SELECT * FROM tyli WHERE id =?", (compet_id,))
                 values = cursor.fetchone()
             for i, entry in enumerate(entries):
-                entries[i].insert(0, values[i + 2])
+                if i > 2:
+                    entries[i].set(self.categories[values[i + 2]])
+                else:
+                    entries[i].set(values[i + 2])
 
             change_button = ttk.Button(buttons_frame, text='Изменить', width=15,
                                        command=lambda:
@@ -156,8 +175,16 @@ class TyliFrame(tk.Frame):
         cancel_button2 = ttk.Button(buttons_frame, text="Отмена", command=self.top_window.destroy, width=15)
         cancel_button2.pack(fill="both", expand=True, side="left", padx=5)
 
-    def back(self):
-        self.master.show_table('спортсмены', self)
+    @staticmethod
+    def update_entry_ages(entry_from, entry_to):
+        entry_to['values'] = [str(i) for i in range(int(entry_from.get()), 100)]
+        if entry_to.get() and int(entry_from.get()) > int(entry_to.get()):
+            entry_to.set('')
+
+    def update_entry_categories(self, entry_from, entry_to):
+        entry_to['values'] = self.categories[self.categories.index(entry_from.get()):]
+        if entry_to.get() and self.categories.index(entry_from.get()) > self.categories.index(entry_to.get()):
+            entry_to.set('')
 
     def add_change_category(self, entries, cat_id=None, change=False):
         parameters = ()
@@ -174,50 +201,81 @@ class TyliFrame(tk.Frame):
                     cursor.execute(
                         "UPDATE tyli SET gender = ?, age_form = ?, age_to = ?, category_from = ?, category_to = ? WHERE id = ?",
                         parameters)
-                else:
-                    parameters += (self.current_id,)
+                    conn.commit()
+                    parameters = (self.current_id,) + parameters[0:-1] + ('да',)
+                    cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                                                            AND  gender = ?
+                                                                            AND age BETWEEN ? AND ?
+                                                                            AND  category BETWEEN ? AND ?
+                                                                            AND tyli= ?
+                                                                        """, parameters)
+                    users = json.dumps([i[0] for i in cursor.fetchall()])
                     cursor.execute(
-                        "INSERT INTO tyli (gender, age_form, age_to, category_from, category_to, competition_id) VALUES (?, ?, ?, ?, ?, ?)",
-                        parameters)
-                conn.commit()
-            self.load_unallocated_table()
-            self.load_category_table(self.current_id)
-            self.top_window.destroy()
+                        "UPDATE tyli SET users = ? WHERE id = ?", (users, cat_id,))
+                    conn.commit()
+                else:
+                        parameters += (self.current_id,)
+                        cursor.execute(
+                            "INSERT INTO tyli (gender, age_form, age_to, category_from, category_to, competition_id) VALUES (?, ?, ?, ?, ?, ?)",
+                            parameters)
+                        conn.commit()
+                        cursor.execute("SELECT MAX(id) FROM tyli")
+                        last_id = cursor.fetchone()[0]
+                        parameters = (self.current_id,) + parameters[0:-1] + ('да',)
+                        cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                                                                                    AND  gender = ?
+                                                                                                    AND age BETWEEN ? AND ?
+                                                                                                    AND  category BETWEEN ? AND ?
+                                                                                                    AND tyli= ?
+                                                                                                """, parameters)
+                        users = json.dumps([i[0] for i in cursor.fetchall()])
+                        cursor.execute(
+                            "UPDATE tyli SET users = ? WHERE id = ?", (users, last_id,))
+                        conn.commit()
+                self.update_tables()
+                self.top_window.destroy()
         except Exception as e:
             self.top_window.destroy()
-            messagebox.showerror("Ошибка", f"{e}", parent=self.master)
+            messagebox.showerror(f"Ошибка add_change\n{traceback.format_exc()}", f"{e}", parent=self.master)
 
-    @staticmethod
-    def update_entry_ages(entry_from, entry_to):
-        entry_to['values'] = [str(i) for i in range(int(entry_from.get()), 100)]
-        if entry_to.get() and int(entry_from.get()) > int(entry_to.get()):
-            entry_to.set('')
+    def delete_category(self, cat_id):
+        answer = messagebox.askyesno("Удалить участника", "УДАЛИТЬ?")
+        if answer:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM tyli WHERE id = ?", (cat_id,))
+                conn.commit()
+            self.update_tables()
 
-    def update_entry_categoties(self, entry_from, entry_to):
-        entry_to['values'] = self.categories[self.categories.index(entry_from.get()):]
-        if entry_to.get() and self.categories.index(entry_from.get()) > self.categories.index(entry_to.get()):
-            entry_to.set('')
+    def calculate_users(self):
+        self.located_users = []
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT users FROM tyli WHERE competition_id = ?", (self.current_id,))
+            for i in cursor:
+                self.located_users += json.loads(i[0])
+            self.unallocated_users = [x for x in self.all_users if x not in self.located_users]
 
-    def load_category_table(self, comp_id):
-        self.current_id = comp_id
+    def load_category_table(self):
         for row in self.category_table.get_children():
             self.category_table.delete(row)
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
+            self.overlap_users = {number: count for number, count in Counter(self.located_users).items() if count > 1}
             cursor.execute("SELECT * FROM tyli WHERE competition_id = ?", (self.current_id,))
             tyli_data = cursor.fetchall()
-        for num, row in enumerate(tyli_data):
-            athletes_count = 0
-            unallocated_count = 0
-            values = [num + 1, row[2], f'{row[3]} - {row[4]}',
-                      f'{self.categories[row[5]]} - {self.categories[row[6]]}',
-                      athletes_count, unallocated_count, [row[0]]]
-            self.category_table.insert("", tk.END, values=values)
+            for num, row in enumerate(tyli_data):
+                athletes = json.loads(row[-1])
+                athletes_count = len(athletes)
+                overlap_count = len(set(athletes) & set(self.overlap_users.keys()))
+                values = [num + 1, row[2], f'{row[3]} - {row[4]}',
+                          f'{self.categories[row[5]]} - {self.categories[row[6]]}',
+                          athletes_count, overlap_count, [row[0]]]
+                self.category_table.insert("", tk.END, values=values)
 
     def load_athletes_table(self, tyli_id):
         for row in self.athletes_table.get_children():
             self.athletes_table.delete(row)
-
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -230,17 +288,50 @@ class TyliFrame(tk.Frame):
                                         AND  category BETWEEN ? AND ?
                                         AND tyli= ?
                                     """, parameters)
-
                 athletes = cursor.fetchall()
-            for num, row in enumerate(athletes):
-                values = [row[0], row[2], row[5], self.categories[row[7]], row[8], row[10]]
-                self.athletes_table.insert("", tk.END, values=values)
-            print(len(athletes))
+                for num, row in enumerate(athletes):
+                    values = [row[0], row[2], row[5], self.categories[row[7]], row[8], row[10]]
+                    if row[0] in self.overlap_users.keys():
+                        if self.overlap_users[row[0]] > 2:
+                            self.athletes_table.insert("", tk.END, values=values, tags=('red'))
+                        else:
+                            self.athletes_table.insert("", tk.END, values=values, tags=('blue'))
+                    else:
+                        self.athletes_table.insert("", tk.END, values=values)
         except Exception as e:
-            messagebox.showerror("Ошибка", f"{e}", parent=self.master)
+            messagebox.showerror(f"Ошибка load_athletes\n{traceback.format_exc()}", f"{e}", parent=self.master)
 
     def load_unallocated_table(self):
-        conn = sqlite3.connect(config.DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM tyli WHERE competition_id = ?", (self.current_id,))
-        data = cursor.fetchall()
+        for row in self.unallocated_table.get_children():
+            self.unallocated_table.delete(row)
+        try:
+            if self.unallocated_users:
+                with sqlite3.connect(DB_FILE) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        f"SELECT * FROM athletes WHERE id IN ({','.join('?' for _ in self.unallocated_users)}) AND tyli = ?",
+                        self.unallocated_users + ['да'])
+                    athletes = cursor.fetchall()
+                    for num, row in enumerate(athletes):
+                        values = [num + 1, row[2], row[5], self.categories[row[7]], row[8], row[10], row[0]]
+                        self.unallocated_table.insert("", tk.END, values=values)
+            else:
+                print('Все участники распределены!')
+        except Exception as e:
+            messagebox.showerror(f"Ошибка load_unallocated\n{traceback.format_exc()}", f"{e}", parent=self.master)
+
+    def show_athletes_table(self):
+        self.master.show_table('спортсмены', self)
+
+    def update_all_users(self, comp_id):
+        self.current_id = comp_id
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM athletes WHERE competition_id = ? AND tyli = ?", (self.current_id, 'да'))
+            self.all_users = [i[0] for i in cursor.fetchall()]
+        self.update_tables()
+
+    def update_tables(self):
+        self.calculate_users()
+        self.load_category_table()
+        self.load_unallocated_table()
