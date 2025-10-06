@@ -194,12 +194,12 @@ class AthletesFrame(tk.Frame):
                         self.load_table(self.current_id)
                         messagebox.showinfo("Готово", f"Участники загружены из {os.path.basename(file)} {sheets[0]}")
                     except Exception as e:
-                        messagebox.showerror("Ошибка add_list", f"Возможно ошибка в строке: {current_row}!\n\n{e}", parent=self.master)
+                        messagebox.showerror("Ошибка add_list", f"Возможно ошибка в строке: {current_row}!\n\n{e}",
+                                             parent=self.master)
                         messagebox.showerror("Ошибка", traceback.format_exc())
                         raise
                 else:
                     messagebox.showerror("Ошибка", f"Загрузка отменена, проверьте {', '.join(map(str, sheets))}")
-
 
     def add_change_athlete(self, entries, athlete_id=None, change=False):
         parameters = ()
@@ -298,14 +298,15 @@ class AthletesFrame(tk.Frame):
     def save_xls(self):
         wb = Workbook()
         ws = wb.active
-        ws.title = "Users"
+        ws.title = "заявка"
 
         headers = ["ФИО", "дата рождения", "Пол", "Вес", "Квалификация", "Клуб", "Тренер", "Возраст"]
         ws.append(headers)
-
-        ws.append([1, "Иван", 25, 4, 5, 6, 7, 8])
-        ws.append([2, "Мария", 30, 4, 5, 6, 7, 8])
-        ws.append([3, "Петр", 22, 4, 5, 6, 7, 8])
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM athletes WHERE competition_id = ?", (self.current_id,))
+            for row in cursor.fetchall():
+                ws.append([row[2], row[4], row[3], row[6], self.categories[row[7]], row[9], row[10], row[5]])
 
         thick_border = Border(
             left=Side(style="thin", color="000000"),
