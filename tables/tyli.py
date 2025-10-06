@@ -193,50 +193,46 @@ class TyliFrame(tk.Frame):
                 parameters += (self.categories.index(entry.get()),)
             else:
                 parameters += (entry.get(),)
-        try:
-            with sqlite3.connect(DB_FILE) as conn:
-                cursor = conn.cursor()
-                if change:
-                    parameters += (cat_id,)
-                    cursor.execute(
-                        "UPDATE tyli SET gender = ?, age_form = ?, age_to = ?, category_from = ?, category_to = ? WHERE id = ?",
-                        parameters)
-                    conn.commit()
-                    parameters = (self.current_id,) + parameters[0:-1] + ('да',)
-                    cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
-                                                                            AND  gender = ?
-                                                                            AND age BETWEEN ? AND ?
-                                                                            AND  category BETWEEN ? AND ?
-                                                                            AND tyli= ?
-                                                                        """, parameters)
-                    users = json.dumps([i[0] for i in cursor.fetchall()])
-                    cursor.execute(
-                        "UPDATE tyli SET users = ? WHERE id = ?", (users, cat_id,))
-                    conn.commit()
-                else:
-                        parameters += (self.current_id,)
-                        cursor.execute(
-                            "INSERT INTO tyli (gender, age_form, age_to, category_from, category_to, competition_id) VALUES (?, ?, ?, ?, ?, ?)",
-                            parameters)
-                        conn.commit()
-                        cursor.execute("SELECT MAX(id) FROM tyli")
-                        last_id = cursor.fetchone()[0]
-                        parameters = (self.current_id,) + parameters[0:-1] + ('да',)
-                        cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
-                                                                                                    AND  gender = ?
-                                                                                                    AND age BETWEEN ? AND ?
-                                                                                                    AND  category BETWEEN ? AND ?
-                                                                                                    AND tyli= ?
-                                                                                                """, parameters)
-                        users = json.dumps([i[0] for i in cursor.fetchall()])
-                        cursor.execute(
-                            "UPDATE tyli SET users = ? WHERE id = ?", (users, last_id,))
-                        conn.commit()
-                self.update_tables()
-                self.top_window.destroy()
-        except Exception as e:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            if change:
+                parameters += (cat_id,)
+                cursor.execute(
+                    "UPDATE tyli SET gender = ?, age_form = ?, age_to = ?, category_from = ?, category_to = ? WHERE id = ?",
+                    parameters)
+                conn.commit()
+                parameters = (self.current_id,) + parameters[0:-1] + ('да',)
+                cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                                                        AND  gender = ?
+                                                                        AND age BETWEEN ? AND ?
+                                                                        AND  category BETWEEN ? AND ?
+                                                                        AND tyli= ?
+                                                                    """, parameters)
+                users = json.dumps([i[0] for i in cursor.fetchall()])
+                cursor.execute(
+                    "UPDATE tyli SET users = ? WHERE id = ?", (users, cat_id,))
+                conn.commit()
+            else:
+                parameters += (self.current_id,)
+                cursor.execute(
+                    "INSERT INTO tyli (gender, age_form, age_to, category_from, category_to, competition_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    parameters)
+                conn.commit()
+                cursor.execute("SELECT MAX(id) FROM tyli")
+                last_id = cursor.fetchone()[0]
+                parameters = (self.current_id,) + parameters[0:-1] + ('да',)
+                cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                                                                                AND  gender = ?
+                                                                                                AND age BETWEEN ? AND ?
+                                                                                                AND  category BETWEEN ? AND ?
+                                                                                                AND tyli= ?
+                                                                                            """, parameters)
+                users = json.dumps([i[0] for i in cursor.fetchall()])
+                cursor.execute(
+                    "UPDATE tyli SET users = ? WHERE id = ?", (users, last_id,))
+                conn.commit()
+            self.update_tables()
             self.top_window.destroy()
-            messagebox.showerror(f"Ошибка add_change\n{traceback.format_exc()}", f"{e}", parent=self.master)
 
     def delete_category(self, cat_id):
         answer = messagebox.askyesno("Удалить участника", "УДАЛИТЬ?")
@@ -249,16 +245,21 @@ class TyliFrame(tk.Frame):
 
     def calculate_users(self):
         self.located_users = []
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT users FROM tyli WHERE competition_id = ?", (self.current_id,))
-            for i in cursor:
-                self.located_users += json.loads(i[0])
-            self.unallocated_users = [x for x in self.all_users if x not in self.located_users]
+        try:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT users FROM tyli WHERE competition_id = ?", (self.current_id,))
+                for i in cursor:
+                    self.located_users += json.loads(i[0])
+                self.unallocated_users = [x for x in self.all_users if x not in self.located_users]
+        except Exception as e:
+            messagebox.showerror("calculate_users", traceback.format_exc())
+            raise
 
     def load_category_table(self):
         for row in self.category_table.get_children():
             self.category_table.delete(row)
+
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             self.overlap_users = {number: count for number, count in Counter(self.located_users).items() if count > 1}
@@ -276,49 +277,43 @@ class TyliFrame(tk.Frame):
     def load_athletes_table(self, tyli_id):
         for row in self.athletes_table.get_children():
             self.athletes_table.delete(row)
-        try:
-            with sqlite3.connect(DB_FILE) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tyli WHERE id = ?", (tyli_id,))
-                data = cursor.fetchall()[0]
-                parameters = (self.current_id,) + data[2:-1] + ('да',)
-                cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
-                                        AND  gender = ?
-                                        AND age BETWEEN ? AND ?
-                                        AND  category BETWEEN ? AND ?
-                                        AND tyli= ?
-                                    """, parameters)
-                athletes = cursor.fetchall()
-                for num, row in enumerate(athletes):
-                    values = [row[0], row[2], row[5], self.categories[row[7]], row[8], row[10]]
-                    if row[0] in self.overlap_users.keys():
-                        if self.overlap_users[row[0]] > 2:
-                            self.athletes_table.insert("", tk.END, values=values, tags=('red'))
-                        else:
-                            self.athletes_table.insert("", tk.END, values=values, tags=('blue'))
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM tyli WHERE id = ?", (tyli_id,))
+            data = cursor.fetchall()[0]
+            parameters = (self.current_id,) + data[2:-1] + ('да',)
+            cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                    AND  gender = ?
+                                    AND age BETWEEN ? AND ?
+                                    AND  category BETWEEN ? AND ?
+                                    AND tyli= ?
+                                """, parameters)
+            athletes = cursor.fetchall()
+            for num, row in enumerate(athletes):
+                values = [row[0], row[2], row[5], self.categories[row[7]], row[8], row[10]]
+                if row[0] in self.overlap_users.keys():
+                    if self.overlap_users[row[0]] > 2:
+                        self.athletes_table.insert("", tk.END, values=values, tags=('red'))
                     else:
-                        self.athletes_table.insert("", tk.END, values=values)
-        except Exception as e:
-            messagebox.showerror(f"Ошибка load_athletes\n{traceback.format_exc()}", f"{e}", parent=self.master)
+                        self.athletes_table.insert("", tk.END, values=values, tags=('blue'))
+                else:
+                    self.athletes_table.insert("", tk.END, values=values)
 
     def load_unallocated_table(self):
         for row in self.unallocated_table.get_children():
             self.unallocated_table.delete(row)
-        try:
-            if self.unallocated_users:
-                with sqlite3.connect(DB_FILE) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        f"SELECT * FROM athletes WHERE id IN ({','.join('?' for _ in self.unallocated_users)}) AND tyli = ?",
-                        self.unallocated_users + ['да'])
-                    athletes = cursor.fetchall()
-                    for num, row in enumerate(athletes):
-                        values = [num + 1, row[2], row[5], self.categories[row[7]], row[8], row[10], row[0]]
-                        self.unallocated_table.insert("", tk.END, values=values)
-            else:
-                print('Все участники распределены!')
-        except Exception as e:
-            messagebox.showerror(f"Ошибка load_unallocated\n{traceback.format_exc()}", f"{e}", parent=self.master)
+        if self.unallocated_users:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    f"SELECT * FROM athletes WHERE id IN ({','.join('?' for _ in self.unallocated_users)}) AND tyli = ?",
+                    self.unallocated_users + ['да'])
+                athletes = cursor.fetchall()
+                for num, row in enumerate(athletes):
+                    values = [num + 1, row[2], row[5], self.categories[row[7]], row[8], row[10], row[0]]
+                    self.unallocated_table.insert("", tk.END, values=values)
+        else:
+            print('Все участники распределены!')
 
     def show_athletes_table(self):
         self.master.show_table('спортсмены', self)
@@ -332,6 +327,10 @@ class TyliFrame(tk.Frame):
         self.update_tables()
 
     def update_tables(self):
-        self.calculate_users()
-        self.load_category_table()
-        self.load_unallocated_table()
+        try:
+            self.calculate_users()
+            self.load_category_table()
+            self.load_unallocated_table()
+        except Exception as e:
+            messagebox.showerror("Ошибка update_tables", traceback.format_exc())
+            raise

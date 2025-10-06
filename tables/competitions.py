@@ -133,7 +133,6 @@ class CompetitionsFrame(tk.Frame):
             self.update_table()
             self.top_window.destroy()
         except ValueError:
-            self.top_window.destroy()
             messagebox.showerror("Ошибка", "Не верный формат даты!", parent=self.master)
 
     def delete_competition(self, num):

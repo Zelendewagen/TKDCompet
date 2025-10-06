@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import traceback
 from datetime import datetime
 from tkinter import ttk, messagebox
 import tkinter as tk
@@ -193,9 +194,12 @@ class AthletesFrame(tk.Frame):
                         self.load_table(self.current_id)
                         messagebox.showinfo("Готово", f"Участники загружены из {os.path.basename(file)} {sheets[0]}")
                     except Exception as e:
-                        messagebox.showerror("Ошибка", f"Ошибка в строке: {current_row}!\n\n{e}", parent=self.master)
+                        messagebox.showerror("Ошибка add_list", f"Возможно ошибка в строке: {current_row}!\n\n{e}", parent=self.master)
+                        messagebox.showerror("Ошибка", traceback.format_exc())
+                        raise
                 else:
                     messagebox.showerror("Ошибка", f"Загрузка отменена, проверьте {', '.join(map(str, sheets))}")
+
 
     def add_change_athlete(self, entries, athlete_id=None, change=False):
         parameters = ()
@@ -313,11 +317,10 @@ class AthletesFrame(tk.Frame):
             for cell in row:
                 cell.border = thick_border
 
-
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM competitions WHERE id = ?", (self.current_id,))
             name = cursor.fetchone()[0]
 
         wb.save(f"{name}.xlsx")
-        messagebox.showinfo("TKD",f"Таблица сохранена: {name}.xlsx")
+        messagebox.showinfo("TKD", f"Таблица сохранена: {name}.xlsx")

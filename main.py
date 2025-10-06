@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import messagebox, ttk
 import os
@@ -103,12 +104,20 @@ class MainFrame(tk.Frame):
         names[name].pack(fill="both", padx=10, pady=10, expand=True)
 
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
 #######################################################################################################################
 root = tk.Tk()
 root.title("TKD competitions manager")
 root.geometry(config.geometry(root, config.main_width, config.main_height))
 root.option_add("*tearOff", tk.FALSE)
-root.iconbitmap("icons/tkd.ico")
+root.iconbitmap(resource_path("icons/tkd.ico"))
 #######################################################################################################################
 style = ttk.Style()
 style.theme_use("vista")
