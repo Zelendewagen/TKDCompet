@@ -38,9 +38,11 @@ class MassogiFrame(tk.Frame):
         back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_athletes_table, width=10)
         add_category = ttk.Button(buttons_frame, text="Добавить категорию",
                                   command=self.open_add_change_category_window, width=20)
+        shuffle = ttk.Button(buttons_frame, text="Жеребьевка", command=self.shuffle, width=20)
 
         back_button.pack(side="left")
         add_category.pack(side="left", padx=5)
+        shuffle.pack(side="left", padx=5)
 
         buttons_frame.pack(fill="both", pady=(0, 10))
 
@@ -285,6 +287,14 @@ class MassogiFrame(tk.Frame):
                     "UPDATE massogi SET users = ? WHERE id = ?", (users, massogi_data[0][0],))
                 conn.commit()
 
+    def update_all_users(self, comp_id):
+        self.current_id = comp_id
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM athletes WHERE competition_id = ? AND massogi = ?", (self.current_id, 'да'))
+            self.all_users = [i[0] for i in cursor.fetchall()]
+        self.calculate_located_users()
+
     def load_category_table(self):
         for row in self.category_table.get_children():
             self.category_table.delete(row)
@@ -345,17 +355,6 @@ class MassogiFrame(tk.Frame):
         else:
             print('Все участники распределены!')
 
-    def show_athletes_table(self):
-        self.master.show_table('спортсмены', self)
-
-    def update_all_users(self, comp_id):
-        self.current_id = comp_id
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM athletes WHERE competition_id = ? AND massogi = ?", (self.current_id, 'да'))
-            self.all_users = [i[0] for i in cursor.fetchall()]
-        self.calculate_located_users()
-
     def update_tables(self):
         try:
             self.calculate_located_users()
@@ -364,3 +363,9 @@ class MassogiFrame(tk.Frame):
         except Exception as e:
             messagebox.showerror("Ошибка update_tables", traceback.format_exc())
             raise
+
+    def show_athletes_table(self):
+        self.master.show_table('спортсмены', self)
+
+    def shuffle(self):
+        print('shuffle')
