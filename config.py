@@ -7,17 +7,17 @@ screen_height = user32.GetSystemMetrics(1)
 main_width = int(screen_width * 0.7)
 main_height = int(screen_height * 0.6)
 
-cmp_window_width = int(screen_width * 0.2)
-cmp_window_height = int(screen_height * 0.2)
+cmp_window_width = 305
+cmp_window_height = 300
 
-athl_window_width = int(screen_width * 0.15)
-athl_window_height = int(screen_height * 0.27)
+athl_window_width = 355
+athl_window_height = 385
 
-tyli_window_width = int(screen_width * 0.1)
-tyli_window_height = int(screen_height * 0.11)
+tyli_window_width = 250
+tyli_window_height = 170
 
-massogi_window_width = int(screen_width * 0.1)
-massogi_window_height = int(screen_height * 0.13)
+massogi_window_width = 250
+massogi_window_height = 200
 
 DB_FILE = "data.db"
 DB_FOLDER = "."

@@ -21,7 +21,7 @@ class AthletesFrame(tk.Frame):
         self.current_id = None
         self.create_top_buttons()
         self.create_table()
-        self.categories = [f"{i} гып" for i in range(10, 0, -1)] + [f"{i} дан" for i in range(1, 10)]
+        self.categories = [f"{i} гып" for i in range(10, 0, -1)] +['I дан'] +[f"{i} дан" for i in range(2, 10)]
 
     def create_top_buttons(self):
         buttons_frame = tk.Frame(self)
@@ -170,6 +170,7 @@ class AthletesFrame(tk.Frame):
                 if not df.dropna(how="all").empty:
                     data = df.values.tolist()
                     sheets.append(sheet)
+                    data = data[3:]
             if data:
                 if len(sheets) == 1:
                     try:
