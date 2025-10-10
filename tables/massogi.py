@@ -253,7 +253,7 @@ class MassogiFrame(tk.Frame):
                 conn.commit()
             self.update_tables()
 
-    def calculate_users(self):
+    def calculate_located_users(self):
         try:
             self.located_users = []
             with sqlite3.connect(DB_FILE) as conn:
@@ -265,6 +265,25 @@ class MassogiFrame(tk.Frame):
         except Exception as e:
             messagebox.showerror("Ошибка calculate_users", traceback.format_exc())
             raise
+
+    def update_users_category(self):
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            for row in self.category_table.get_children():
+                cursor.execute("SELECT * FROM massogi WHERE id = ?", (self.category_table.item(row, 'values')[-1],))
+                massogi_data = cursor.fetchall()
+                parameters = (self.current_id,) + massogi_data[0][2:-1] + ('да',)
+                cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                                                        AND  gender = ?
+                                                                        AND age BETWEEN ? AND ?
+                                                                        AND  category BETWEEN ? AND ?
+                                                                        AND  weight BETWEEN ? AND ?
+                                                                        AND massogi= ?
+                                                                        """, parameters)
+                users = json.dumps([i[0] for i in cursor.fetchall()])
+                cursor.execute(
+                    "UPDATE massogi SET users = ? WHERE id = ?", (users, massogi_data[0][0],))
+                conn.commit()
 
     def load_category_table(self):
         for row in self.category_table.get_children():
@@ -335,11 +354,11 @@ class MassogiFrame(tk.Frame):
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM athletes WHERE competition_id = ? AND massogi = ?", (self.current_id, 'да'))
             self.all_users = [i[0] for i in cursor.fetchall()]
-        self.update_tables()
+        self.calculate_located_users()
 
     def update_tables(self):
         try:
-            self.calculate_users()
+            self.calculate_located_users()
             self.load_category_table()
             self.load_unallocated_table()
         except Exception as e:

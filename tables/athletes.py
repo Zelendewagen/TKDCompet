@@ -276,10 +276,14 @@ class AthletesFrame(tk.Frame):
     def show_tyli(self):
         self.master.show_table('тыли', self)
         self.master.tyli_frame.update_all_users(self.current_id)
+        self.master.tyli_frame.update_users_category()
+        self.master.tyli_frame.update_tables()
 
     def show_massogi(self):
         self.master.show_table('массоги', self)
         self.master.massogi_frame.update_all_users(self.current_id)
+        self.master.massogi_frame.update_users_category()
+        self.master.massogi_frame.update_tables()
 
     @staticmethod
     def update_ages(comp_id):

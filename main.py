@@ -15,7 +15,6 @@ from tables.tyli import TyliFrame
 class MainFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.test = 12345
         self.competitions_frame = CompetitionsFrame(self)
         self.athletes_frame = AthletesFrame(self)
         self.tyli_frame = TyliFrame(self)

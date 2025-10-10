@@ -243,7 +243,7 @@ class TyliFrame(tk.Frame):
                 conn.commit()
             self.update_tables()
 
-    def calculate_users(self):
+    def calculate_located_users(self):
         self.located_users = []
         try:
             with sqlite3.connect(DB_FILE) as conn:
@@ -253,8 +253,26 @@ class TyliFrame(tk.Frame):
                     self.located_users += json.loads(i[0])
                 self.unallocated_users = [x for x in self.all_users if x not in self.located_users]
         except Exception as e:
-            messagebox.showerror("calculate_users", traceback.format_exc())
+            messagebox.showerror("Ошибка calculate_users", traceback.format_exc())
             raise
+
+    def update_users_category(self):
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            for row in self.category_table.get_children():
+                cursor.execute("SELECT * FROM tyli WHERE id = ?", (self.category_table.item(row, 'values')[-1],))
+                tyli_data = cursor.fetchall()
+                parameters = (self.current_id,) + tyli_data[0][2:-1] + ('да',)
+                cursor.execute("""SELECT * FROM athletes WHERE competition_id = ?
+                                                                AND  gender = ?
+                                                                AND age BETWEEN ? AND ?
+                                                                AND  category BETWEEN ? AND ?
+                                                                AND tyli= ?
+                                                                """, parameters)
+                users = json.dumps([i[0] for i in cursor.fetchall()])
+                cursor.execute(
+                    "UPDATE tyli SET users = ? WHERE id = ?", (users, tyli_data[0][0],))
+                conn.commit()
 
     def load_category_table(self):
         for row in self.category_table.get_children():
@@ -324,11 +342,11 @@ class TyliFrame(tk.Frame):
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM athletes WHERE competition_id = ? AND tyli = ?", (self.current_id, 'да'))
             self.all_users = [i[0] for i in cursor.fetchall()]
-        self.update_tables()
+        self.calculate_located_users()
 
     def update_tables(self):
         try:
-            self.calculate_users()
+            self.calculate_located_users()
             self.load_category_table()
             self.load_unallocated_table()
         except Exception as e:
