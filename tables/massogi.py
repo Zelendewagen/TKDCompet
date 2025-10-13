@@ -28,7 +28,7 @@ class MassogiFrame(tk.Frame):
         self.create_unallocated_table()
         self.create_athletes_table()
 
-        self.categories = [f"{i} гып" for i in range(10, 0, -1)] + ['I дан'] + [f"{i} дан" for i in range(2, 10)]
+        self.categories = [f"{i} гып" for i in range(10, 0, -1)] + [f"{i} дан" for i in range(1, 10)]
 
     def create_top_buttons(self):
         buttons_frame = tk.Frame(self)
