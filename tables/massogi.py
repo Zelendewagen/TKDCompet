@@ -129,7 +129,7 @@ class MassogiFrame(tk.Frame):
         frame.columnconfigure(index=1, weight=1)
         frame.columnconfigure(index=3, weight=1)
 
-        counts = [str(i) for i in range(1, 100)]
+        counts = [str(i) for i in range(1, 200)]
         entries = [ttk.Combobox(frame, values=counts, state="readonly", width=30) for _ in range(2)]
         entries += [ttk.Combobox(frame, values=self.categories, state="readonly", width=30) for _ in range(2)]
         entries += [ttk.Combobox(frame, values=counts, state="readonly", width=30) for _ in range(2)]
@@ -184,7 +184,7 @@ class MassogiFrame(tk.Frame):
 
     @staticmethod
     def update_entry_counts(entry_from, entry_to):
-        entry_to['values'] = [str(i) for i in range(int(entry_from.get()), 100)]
+        entry_to['values'] = [str(i) for i in range(int(entry_from.get()), 200)]
         if entry_to.get() and int(entry_from.get()) > int(entry_to.get()):
             entry_to.set('')
 
@@ -349,7 +349,6 @@ class MassogiFrame(tk.Frame):
                 for num, row in enumerate(athletes):
                     values = [num + 1, row[2], row[5], self.categories[row[7]], row[6], row[8], row[10], row[0]]
                     self.unallocated_table.insert("", tk.END, values=values)
-
 
     def update_tables(self):
         try:
