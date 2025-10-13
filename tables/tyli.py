@@ -1,17 +1,14 @@
 import json
-import os
+import random
 import sqlite3
 import traceback
-from datetime import datetime
 from collections import Counter
 from tkinter import ttk, messagebox
 import tkinter as tk
-from tkinter.filedialog import askopenfilename
-
-import pandas as pd
 
 import config
 from config import DB_FILE
+from tournament_grid import create_grid
 
 
 class TyliFrame(tk.Frame):
@@ -38,7 +35,7 @@ class TyliFrame(tk.Frame):
         back_button = ttk.Button(buttons_frame, text="\u2190", command=self.show_athletes_table, width=10)
         add_category = ttk.Button(buttons_frame, text="Добавить категорию",
                                   command=self.open_add_change_category_window, width=20)
-        shuffle = ttk.Button(buttons_frame, text="Жеребьевка", command=self.shuffle, width=20)
+        shuffle = ttk.Button(buttons_frame, text="Создать сетки", command=self.shuffle, width=20)
 
         back_button.pack(side="left")
         add_category.pack(side="left", padx=5)
@@ -340,8 +337,7 @@ class TyliFrame(tk.Frame):
                 for num, row in enumerate(athletes):
                     values = [num + 1, row[2], row[5], self.categories[row[7]], row[8], row[10], row[0]]
                     self.unallocated_table.insert("", tk.END, values=values)
-        else:
-            print('Все участники распределены!')
+
 
     def update_tables(self):
         try:
@@ -356,4 +352,33 @@ class TyliFrame(tk.Frame):
         self.master.show_table('спортсмены', self)
 
     def shuffle(self):
-        print('shuffle')
+        try:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM competitions WHERE id = ?", (self.current_id,))
+                compet_data = cursor.fetchall()
+                comp_name = compet_data[0][1]
+                city = compet_data[0][3]
+                members = {'Главный судья:': compet_data[0][5], 'Судья:': compet_data[0][6],
+                           'Секретарь:': compet_data[0][7]}
+
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM tyli WHERE competition_id = ?", (self.current_id,))
+                cat_data = cursor.fetchall()
+            for i in cat_data:
+                name = f"Тыли {i[3]}-{i[4]}лет, {self.categories[i[5]]}-{self.categories[i[6]]}, {i[2]}"
+                users = json.loads(i[-1])
+                if users:
+                    cursor.execute(
+                        f"SELECT * FROM athletes WHERE id IN ({','.join('?' for _ in users)}) AND tyli = ?",
+                        users + ['да'])
+                    users_data = cursor.fetchall()
+                    users = []
+                    for user in users_data:
+                        users.append(f"{user[2]}({(user[9])})")
+                    random.shuffle(users)
+                    create_grid(users=users, cat_name=name, comp_name=comp_name, city=city, members=members, tyli=True)
+            messagebox.showinfo("Готово", f'Сетки сохранены в "Тыли {comp_name}.xlsx"')
+        except Exception as e:
+            messagebox.showerror("Ошибка Жеребьевки", traceback.format_exc())
+            raise

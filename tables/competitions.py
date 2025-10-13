@@ -123,13 +123,13 @@ class CompetitionsFrame(tk.Frame):
                     cursor.execute("UPDATE competitions"
                                    " SET name = ?, date = ?, location = ?, club = ?, main_judge = ?, judge = ?, secretary= ? WHERE id = ?",
                                    parameters)
-                    self.master.athletes_frame.update_ages(comp_id)
                 else:
                     cursor.execute(
                         "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
                         parameters)
                 conn.commit()
 
+            self.master.athletes_frame.update_ages(comp_id)
             self.update_table()
             self.top_window.destroy()
         except ValueError:
