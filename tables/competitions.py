@@ -128,8 +128,8 @@ class CompetitionsFrame(tk.Frame):
                         "INSERT INTO competitions (name, date, location, club, main_judge, judge, secretary) VALUES (?, ?, ?, ?, ?, ?, ?)",
                         parameters)
                 conn.commit()
-
-            self.master.athletes_frame.update_ages(comp_id)
+            if change:
+                self.master.athletes_frame.update_ages(comp_id)
             self.update_table()
             self.top_window.destroy()
         except ValueError:
