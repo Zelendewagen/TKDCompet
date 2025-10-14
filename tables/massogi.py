@@ -240,8 +240,9 @@ class MassogiFrame(tk.Frame):
                 cursor.execute(
                     "UPDATE massogi SET users = ? WHERE id = ?", (users, last_id,))
                 conn.commit()
-            self.update_tables()
-            self.top_window.destroy()
+        self.update_users_category()
+        self.update_tables()
+        self.top_window.destroy()
 
     def delete_category(self, cat_id):
         answer = messagebox.askyesno("Удалить участника", "УДАЛИТЬ?")

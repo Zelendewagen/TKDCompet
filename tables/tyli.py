@@ -230,8 +230,9 @@ class TyliFrame(tk.Frame):
                 cursor.execute(
                     "UPDATE tyli SET users = ? WHERE id = ?", (users, last_id,))
                 conn.commit()
-            self.update_tables()
-            self.top_window.destroy()
+        self.update_users_category()
+        self.update_tables()
+        self.top_window.destroy()
 
     def delete_category(self, cat_id):
         answer = messagebox.askyesno("Удалить участника", "УДАЛИТЬ?")
@@ -337,7 +338,6 @@ class TyliFrame(tk.Frame):
                 for num, row in enumerate(athletes):
                     values = [num + 1, row[2], row[5], self.categories[row[7]], row[8], row[10], row[0]]
                     self.unallocated_table.insert("", tk.END, values=values)
-
 
     def update_tables(self):
         try:
